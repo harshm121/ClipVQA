@@ -10,7 +10,7 @@
 
 One of the tasks humans efficiently do is make sense of the visual information around us. However, we communicate our understanding of the visual information using natural language. Vision and Language usually go hand-in-hand for a lot of tasks we perform daily and thus it is important for machines to be able to do so as well. Visual Question Answering, introduced in [1], is one such task where the problem is to select one of many possible answers given an image and a question associated with the image. See figure 1 for an example. The VQA v2 [2] dataset has 82,783 training images which lead to 443,757 questions in total. Each question was answered by 10 humans generating a total of 4,437,570 answers.  There has been a lot of interest in multi-modal research, especially on vision and language modalities recently. CLIP [3] accelerated this research by releasing a large self-supervised trained model on a huge corpus of image, text pairs. Thanks to the easy access to the trained model, it has been used for various vision and language tasks such as zero-shot image classification [3], zero-shot text-to-image generation [4] and many others [5, 6]. We propose to leverage CLIP pre-trained embedding space to solve the VQA task.
 
-<img src="./vqaexample.png" alt="image-20220222215529398" style="zoom:20%;" />
+<img src="./vqaexample.png" alt="image-20220222215529398" style="zoom:20%" align="center" />
 
 <div align="center"> Figure 1: Examples of the image, question pairs from the VQA dataset </div>
 
@@ -22,7 +22,19 @@ One of the tasks humans efficiently do is make sense of the visual information a
 
 ## Methods
 
-**Supervised section**: CLIP has a visual encoder and a text encoder trained to align the vision and text embeddings when the inputs are aligned. We plan on adding a question-answer encoder that transforms the text embeddings from the question and the correct answer to align well with the image embedding. 
+**Supervised section**: CLIP has a visual encoder and a text encoder trained to align the vision and text embeddings when the inputs are aligned (see figure 2). We plan on adding a question-answer encoder that transforms the text embeddings from the question and the correct answer to align well with the image embedding (figure 3).
+
+<p style="text-align:center;"><img align="center" src="./clip.png" alt="image-20220222215529398" style="zoom:25%"/></p>
+
+<div align="center"> Figure 2: CLIP training, we will use the pretrained CLIP model released by OpenAI</div>
+
+
+
+<p style="text-align:center;"><img align="center" src="./proposed_method.png" alt="image-20220222215529398" style="zoom:25%"/></p>
+
+<div align="center"> Figure 3: Proposed method, where we freeze the CLIP encoders but only train the question answer encoder. Lock denotes frozen model and unlocked denotes trainable.</div>
+
+
 
 **Unsupervised section**: While inference, the above approach would require encoding all possible answers to select the one which aligns the most. However, this is inefficient as the answers can be filtered out based on the question type. For example, the answer to “What color is …?” can never be “apple”. Thus if we are able to form clusters of answer types, we can use these clusters to filter out potential answers and reduce the computation cost while inference. 
 
