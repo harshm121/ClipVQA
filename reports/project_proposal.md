@@ -10,7 +10,7 @@
 
 One of the tasks humans efficiently do is make sense of the visual information around us. However, we communicate our understanding of the visual information using natural language. Vision and Language usually go hand-in-hand for a lot of tasks we perform daily and thus it is important for machines to be able to do so as well. Visual Question Answering, introduced in [1], is one such task where the problem is to select one of many possible answers given an image and a question associated with the image. See figure 1 for an example. The VQA v2 [2] dataset has 82,783 training images which lead to 443,757 questions in total. Each question was answered by 10 humans generating a total of 4,437,570 answers.  There has been a lot of interest in multi-modal research, especially on vision and language modalities recently. CLIP [3] accelerated this research by releasing a large self-supervised trained model on a huge corpus of image, text pairs. Thanks to the easy access to the trained model, it has been used for various vision and language tasks such as zero-shot image classification [3], zero-shot text-to-image generation [4] and many others [5, 6]. We propose to leverage CLIP pre-trained embedding space to solve the VQA task.
 
-<img src="/Users/harshmaheshwari/Library/Application Support/typora-user-images/image-20220222215529398.png" alt="image-20220222215529398" style="zoom:20%;" />
+<img src="./vqaexample.png" alt="image-20220222215529398" style="zoom:20%;" />
 
 <div align="center"> Figure 1: Examples of the image, question pairs from the VQA dataset </div>
 
