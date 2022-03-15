@@ -86,7 +86,3 @@ class CLIPVQA:
 		if(outFile):
 			json.dump(results, open(outFile, 'w'))
 		return results
-
-
-
-

@@ -29,7 +29,7 @@ class CLIPInterface:
 				image_features = torch.tensor(preComputedImageFeatures[imageFilePath[0]]).to(self.device)
 				for f in imageFilePath[1:]:
 					tempImage = torch.tensor(preComputedImageFeatures[f]).to(self.device)
-					image_features = torch.cat((image, tempImage), dim = 0)
+					image_features = torch.cat((image_features, tempImage), dim = 0)
 		else:
 			if(type(imageFilePath) == str):
 				image = self.image_preprocess(Image.open(imageFilePath)).unsqueeze(0).to(self.device)	
