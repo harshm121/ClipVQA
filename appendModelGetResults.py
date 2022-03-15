@@ -19,7 +19,7 @@ def get_arguments():
 if __name__ == '__main__':
     
     args = get_arguments()
-    resultsPath = "./output/results/append_numCandidates_{}_resultsVal.json".format(args["num-candidates"])
+    resultsPath = "./output/results/append_numCandidates_{}_resultsVal.json".format(args.num_candidates)
     appendModel = AppendQAModel(separator=" ", candidateAnswerGenerator='most_common')
     clipInterface = CLIPInterface(device="cuda")
     vqaInterface = VQAInterface(dataDir='./data', versionType="v2", taskType="OpenEnded", dataType="mscoco")
@@ -29,6 +29,6 @@ if __name__ == '__main__':
     allFeatures = clipInterface.getNormalisedImageFeatures(imageFilePath=images, batch_size=128, pklFilePath='./output/intermediate/normalisedFeatures.pkl')
 
     results = clipVqaModel.generateResultsDataLoader(evalDataSubType="val2014", answersDataSubType="train2014",
-                                                    numCandidates=args["num-candidates"], \
+                                                    numCandidates = args.num_candidates, \
                                                     pklImageFeaturesFile = './output/intermediate/normalisedFeatures.pkl',
                                                     outFile=resultsPath)

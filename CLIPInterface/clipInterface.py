@@ -52,6 +52,7 @@ class CLIPInterface:
 		return probs
 
 	def getNormalisedImageFeatures(self, imageFilePath, batch_size, pklFilePath):
+		os.makedirs(os.path.dirname(pklFilePath), exist_ok=True)
 		batchesDone = 0
 		if(os.path.exists(pklFilePath)):
 			allFeatures = pkl.load(open(pklFilePath, 'rb'))
@@ -76,14 +77,7 @@ class CLIPInterface:
 			for idx, f in enumerate(tempBatch):
 				allFeatures[f] = image_features[idx]
 			done += len(tempBatch)
-			try:
-				pkl.dump(allFeatures, open(pklFilePath, 'wb'), protocol = 3)
-			except Exception as e:
-				print(e)
-		try:
-			pkl.dump(allFeatures, open(pklFilePath, 'wb'), protocol = 3)
-		except Exception as e:
-			print(e)
+		pkl.dump(allFeatures, open(pklFilePath, 'wb'), protocol = 3)
 		return allFeatures
 
 
