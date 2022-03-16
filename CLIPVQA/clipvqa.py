@@ -22,7 +22,7 @@ class ImageTextPairDataset(torch.utils.data.Dataset):
 		return {"qid": qid, "image":image, "texts":texts, "answers":answers}
 
 	def __len__(self):
-		return len(self.qiPairs)
+		return len(self.qid)
 
 class CLIPVQA:
 	def __init__(self, clipInterface, languageModel, vqaInterface):
@@ -96,6 +96,9 @@ class CLIPVQA:
 				predAnswer = answer[np.argmax(prob)]
 				qid = qids[b]
 				results[qid] = {"answer":predAnswer, "question_id":qid}
+			if(batchIdx%100 == 0 and outFile):
+				os.makedirs(os.path.dirname(outFile), exist_ok=True)
+				json.dump(results, open(outFile, 'w'))
 		if(outFile):
 			os.makedirs(os.path.dirname(outFile), exist_ok=True)
 			json.dump(results, open(outFile, 'w'))
