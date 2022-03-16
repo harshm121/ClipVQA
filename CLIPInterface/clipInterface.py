@@ -1,3 +1,4 @@
+import itertools
 import torch
 import clip
 from PIL import Image
@@ -13,23 +14,36 @@ class CLIPInterface:
 		self.clip = model
 		self.image_preprocess = preprocess
 
-	def getProbs(self, imageFilePath, texts, preComputedImageFeatures = None):
+	def getProbs(self, imageFilePath, texts, preComputedImageFeatures = None, batch_size = 1):
+		'''
+		NOTE: the number of text per image has to be same for all images! If there are different possible answers
+		for each image, pad texts with some sort of <mask> token. 
+		'''
 		# Getting embeddings for text
-		text = clip.tokenize(texts).to(self.device)
+		all_texts = list(itertools.chain.from_iterable(texts))
+		texts_per_image = len(all_texts) // batch_size
+		text = clip.tokenize(all_texts).to(self.device)
 		with torch.no_grad():
 			text_features = self.clip.encode_text(text)
 			text_features /= text_features.norm(dim=-1, keepdim=True)
 			text_features.to(self.device)
-
+			text_features = torch.stack(text_features.split(texts_per_image), dim = 0) #batch_size x texts_per_image x 512
+			text_features = text_features.permute(0, 2, 1) #batch_size x 512 x texts_per_image
 		# Getting emebddings for images
+		
 		if(preComputedImageFeatures):
+		
 			if(type(imageFilePath) == str):
-				image_features = torch.tensor(preComputedImageFeatures[imageFilePath]).to(self.device)
-			elif(type(imageFilePath) == list and type(imageFilePath[0]) == str):
-				image_features = torch.tensor(preComputedImageFeatures[imageFilePath[0]]).to(self.device)
-				for f in imageFilePath[1:]:
-					tempImage = torch.tensor(preComputedImageFeatures[f]).to(self.device)
-					image_features = torch.cat((image_features, tempImage), dim = 0)
+				image_features = torch.tensor(preComputedImageFeatures[imageFilePath]).unsqueeze(dim = 0)
+				image_features = image_features.to(self.device)
+			elif type(imageFilePath) == list and type(imageFilePath[0]) == str:
+				image_features = []
+				for f in imageFilePath:
+					image_features.append(torch.tensor(preComputedImageFeatures[f]).to(self.device))
+				image_features = torch.stack(image_features, dim = 0) # batch_size x 512
+				image_features = image_features.unsqueeze(dim = 1) # batch_size x 1 x 512
+			else:
+				raise Exception("imageFilePath type not known")
 		else:
 			if(type(imageFilePath) == str):
 				image = self.image_preprocess(Image.open(imageFilePath)).unsqueeze(0).to(self.device)	
@@ -43,11 +57,12 @@ class CLIPInterface:
 			with torch.no_grad():
 				image_features = self.clip.encode_image(image)
 				image_features /= image_features.norm(dim=-1, keepdim=True)
-
+				image_features = image_features.unsqueeze(dim = 1) # batch_size x 1 x 512
 		# Getting final probabilities
 		with torch.no_grad():
 			logit_scale = self.clip.logit_scale.exp()
-			probs = (logit_scale * image_features @ text_features.t()).softmax(dim=-1).detach().cpu().numpy()
+			# probs = batch_size x 1 x texts_per_image
+			probs = (logit_scale * torch.matmul(image_features, text_features)).softmax(dim=-1).detach().cpu().numpy()
 
 		return probs
 

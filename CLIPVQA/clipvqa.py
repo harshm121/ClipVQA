@@ -19,7 +19,7 @@ class ImageTextPairDataset(torch.utils.data.Dataset):
 		question = self.qiPairs[qid]['question']
 		texts, answers = self.getTextFromAllPossibleAnswers(question, self.allAnswers, self.numCandidates)
 		image = self.qiPairs[qid]['image_path']
-		return (qid, image, texts, answers)
+		return {"qid": qid, "image":image, "texts":texts, "answers":answers}
 
 	def __len__(self):
 		return len(self.qiPairs)
@@ -31,9 +31,16 @@ class CLIPVQA:
 		self.vqaInterface = vqaInterface
 
 	def _collate_custom(self, batch):
-		if(len(batch) > 1):
-			raise Exception("Code not functional for batch_size more than 1")
-		return batch[0]
+		qids = []
+		images = []
+		texts = []
+		answers = []
+		for point in batch:
+			qids.append(point['qid'])
+			images.append(point['image'])
+			texts.append(point['texts'])
+			answers.append(point['answers'])
+		return qids, images, texts, answers
 
 	def generateImageTextPairs(self, evalDataSubType, answersDataSubType, numCandidates):
 		allAnswers = self.vqaInterface.getAllAnswers(answersDataSubType)
@@ -70,19 +77,26 @@ class CLIPVQA:
 		else:
 			results = {}
 			dataset = self.getImageTextPairDataset(evalDataSubType, answersDataSubType, numCandidates)
-		#self._collate_custom and clipInterface expectes batch_size to be 1
-		dataloader = torch.utils.data.DataLoader(dataset, batch_size=1, collate_fn = self._collate_custom) 
+		
+		dataloader = torch.utils.data.DataLoader(dataset, batch_size=4, collate_fn = self._collate_custom) 
 		if(pklImageFeaturesFile):
 			preComputedFeatures = pkl.load(open(pklImageFeaturesFile, 'rb'))
 		else:
 			preComputedFeatures = None
-		for batchIdx, (qid, image, texts, answers)  in enumerate(tqdm(dataloader, desc = "Result Generation", initial = len(results))):
+		for batchIdx, (qids, images, texts, answers)  in enumerate(tqdm(dataloader, desc = "Result Generation", initial = len(results))):
+			batch_size = len(qids)
 			if(not oneTimeRunCount is None and batchIdx >= oneTimeRunCount):
 				print("{} instances processed, breaking now".format(str(batchIdx)))
 				break
-			probs = self.clipInterface.getProbs(image, texts, preComputedImageFeatures = preComputedFeatures)
-			predAnswer = answers[np.argmax(probs)]
-			results[qid] = {"answer":predAnswer, "question_id":qid}
+			
+			probs = self.clipInterface.getProbs(images, texts, preComputedImageFeatures = preComputedFeatures, batch_size=batch_size)
+			for b in range(batch_size):
+				prob = probs[b]
+				answer = answers[b]
+				predAnswer = answer[np.argmax(prob)]
+				qid = qids[b]
+				results[qid] = {"answer":predAnswer, "question_id":qid}
 		if(outFile):
+			os.makedirs(os.path.dirname(outFile), exist_ok=True)
 			json.dump(results, open(outFile, 'w'))
 		return results
