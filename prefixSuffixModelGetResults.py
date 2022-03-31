@@ -1,4 +1,4 @@
-from LanguageModels.appendWithPrefixSuffixModel import AppendWithPrefixSuffix
+from LanguageModels.appendWithPrefixSuffixModel import AppendWithPrefixSuffixModel
 from CLIPInterface.clipInterface import CLIPInterface
 from VQAInterface.vqaInterface import VQAInterface
 from CLIPVQA.clipvqa import CLIPVQA
@@ -11,7 +11,7 @@ def get_arguments():
     """
     parser = argparse.ArgumentParser(description='Full Pipeline Training')
 
-    parser.add_argument('--num-candidates', type=int, default=3000,
+    parser.add_argument('--num-candidates', type=int, default=1000,
                         help='Shorter side transformation.')
     return parser.parse_args()
 
@@ -19,8 +19,8 @@ def get_arguments():
 if __name__ == '__main__':
     
     args = get_arguments()
-    resultsPath = "./output/results/append_numCandidates_{}_resultsVal.json".format(args.num_candidates)
-    appendModel = AppendWithPrefixSuffix(question_pre='Question: ', question_suf = '', answer_pre = ' Answer: ', answer_suf = '', candidateAnswerGenerator='most_common')
+    resultsPath = "./output/results/prefixSuffix_numCandidates_{}_resultsVal.json".format(args.num_candidates)
+    appendModel = AppendWithPrefixSuffixModel(question_pre='Question: ', question_suf = '', answer_pre = ' Answer: ', answer_suf = '', candidateAnswerGenerator='most_common')
     clipInterface = CLIPInterface(device="cuda")
     vqaInterface = VQAInterface(dataDir='./data', versionType="v2", taskType="OpenEnded", dataType="mscoco")
 
