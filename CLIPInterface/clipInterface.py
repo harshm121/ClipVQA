@@ -20,7 +20,10 @@ class CLIPInterface:
 		for each image, pad texts with some sort of <mask> token. 
 		'''
 		# Getting embeddings for text
+		print(len(texts))
 		all_texts = list(itertools.chain.from_iterable(texts))
+		#all_texts = texts
+		print(len(all_texts))
 		texts_per_image = len(all_texts) // batch_size
 		text = clip.tokenize(all_texts).to(self.device)
 		with torch.no_grad():
@@ -47,6 +50,67 @@ class CLIPInterface:
 		else:
 			if(type(imageFilePath) == str):
 				image = self.image_preprocess(Image.open(imageFilePath)).unsqueeze(0).to(self.device)	
+			elif(type(imageFilePath) == list and type(imageFilePath[0]) == str):
+				image = self.image_preprocess(Image.open(imageFilePath[0])).unsqueeze(0).to(self.device)
+				for f in imageFilePath[1:]:
+					tempImage = self.image_preprocess(Image.open(f)).unsqueeze(0).to(self.device)
+					image = torch.cat((image, tempImage), dim = 0)
+			else:
+				raise Exception("imageFilePath is expected to be one of {} of {} or a single {} but found {}".format(list, str, str, type(imageFilePath)))
+			with torch.no_grad():
+				image_features = self.clip.encode_image(image)
+				image_features /= image_features.norm(dim=-1, keepdim=True)
+				image_features = image_features.unsqueeze(dim = 1) # batch_size x 1 x 512
+		# Getting final probabilities
+		with torch.no_grad():
+			logit_scale = self.clip.logit_scale.exp()
+			# probs = batch_size x 1 x texts_per_image
+			probs = (logit_scale * torch.matmul(image_features, text_features)).softmax(dim=-1).detach().cpu().numpy()
+		return probs
+
+	def getProbsForSeparateAnswers(self, imageFilePath, questions, answers, preComputedImageFeatures = None,
+								   batch_size = 1):
+		'''
+		NOTE: the number of text per image has to be same for all images! If there are different possible answers
+		for each image, pad texts with some sort of <mask> token.
+		'''
+		# Getting embeddings for text
+		all_question = list(itertools.chain.from_iterable(questions))
+		question_per_image = len(all_question) // batch_size
+		question = clip.tokenize(all_question).to(self.device)
+		all_answer = list(itertools.chain.from_iterable(answers))
+		answer_per_image = len(all_answer) // batch_size
+		answer = clip.tokenize(all_answer).to(self.device)
+		with torch.no_grad():
+			question_features = self.clip.encode_text(question)
+			question_features /= question_features.norm(dim=-1, keepdim=True)
+			question_features.to(self.device)
+			question_features = torch.stack(question_features.split(question_per_image), dim = 0) #batch_size x texts_per_image x 512
+			question_features = question_features.permute(0, 2, 1) #batch_size x 512 x texts_per_image
+			answer_features = self.clip.encode_text(answer)
+			answer_features /= answer_features.norm(dim=-1, keepdim=True)
+			answer_features.to(self.device)
+			answer_features = torch.stack(answer_features.split(answer_per_image), dim = 0) #batch_size x texts_per_image x 512
+			answer_features = answer_features.permute(0, 2, 1) #batch_size x 512 x texts_per_image
+			text_features = question_features + answer_features
+		# Getting emebddings for images
+
+		if(preComputedImageFeatures):
+
+			if(type(imageFilePath) == str):
+				image_features = torch.tensor(preComputedImageFeatures[imageFilePath]).unsqueeze(dim = 0)
+				image_features = image_features.to(self.device)
+			elif type(imageFilePath) == list and type(imageFilePath[0]) == str:
+				image_features = []
+				for f in imageFilePath:
+					image_features.append(torch.tensor(preComputedImageFeatures[f]).to(self.device))
+				image_features = torch.stack(image_features, dim = 0) # batch_size x 512
+				image_features = image_features.unsqueeze(dim = 1) # batch_size x 1 x 512
+			else:
+				raise Exception("imageFilePath type not known")
+		else:
+			if(type(imageFilePath) == str):
+				image = self.image_preprocess(Image.open(imageFilePath)).unsqueeze(0).to(self.device)
 			elif(type(imageFilePath) == list and type(imageFilePath[0]) == str):
 				image = self.image_preprocess(Image.open(imageFilePath[0])).unsqueeze(0).to(self.device)
 				for f in imageFilePath[1:]:

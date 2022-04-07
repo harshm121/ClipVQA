@@ -53,19 +53,37 @@ class CLIPVQA:
 			imageTextPairs.append((qid, image, texts, answers))
 		return imageTextPairs
 
+	def generateImageTextPairsWithSeparateAnswers(self, evalDataSubType, answersDataSubType, numCandidates):
+		allAnswers = self.vqaInterface.getAllAnswers(answersDataSubType)
+		qiPairs = self.vqaInterface.getQIPairs(evalDataSubType)
+		imageTextPairs = [] #TODO: Replace the list with data generator
+		for qid in tqdm(qiPairs, desc = "Generating ImageText Pair"):
+			question = qiPairs[qid]['question']
+			q, a, answers = self.languageModel.getTextFromAllPossibleAnswersWithSeparateAnswers(question, allAnswers, numCandidates)
+			image = qiPairs[qid]['image_path']
+			imageTextPairs.append((qid, image, q, a, answers))
+		return imageTextPairs
+
 	def getImageTextPairDataset(self, evalDataSubType, answersDataSubType, numCandidates, qidsProcessed = []):
 		allAnswers = self.vqaInterface.getAllAnswers(answersDataSubType)
 		qiPairs = self.vqaInterface.getQIPairs(evalDataSubType)
 		dataSet = ImageTextPairDataset(allAnswers, qiPairs, self.languageModel.getTextFromAllPossibleAnswers, numCandidates, qidsProcessed)
 		return dataSet
 
-	def generateResults(self, evalDataSubType, answersDataSubType, numCandidates, outFile = None):
-		imageTextPairs = self.generateImageTextPairs(evalDataSubType, answersDataSubType, numCandidates)
+	def generateResults(self, evalDataSubType, answersDataSubType, numCandidates, outFile = None, experiment='concat_qa'):
 		results = []
-		for (qid, image, texts, answers) in tqdm(imageTextPairs, desc = "Result Generation"):
-			probs = self.clipInterface.getProbs(image, texts)
-			predAnswer = answers[np.argmax(probs)]
-			results.append({"answer":predAnswer, "question_id":qid})
+		if experiment == 'concat_qa':
+			imageTextPairs = self.generateImageTextPairs(evalDataSubType, answersDataSubType, numCandidates)
+			for (qid, image, texts, answers) in tqdm(imageTextPairs, desc = "Result Generation"):
+				probs = self.clipInterface.getProbs(image, texts)
+				predAnswer = answers[np.argmax(probs)]
+				results.append({"answer":predAnswer, "question_id":qid})
+		else:
+			imageTextPairs = self.generateImageTextPairsWithSeparateAnswers(evalDataSubType, answersDataSubType, numCandidates)
+			for (qid, image, q, a, answers) in tqdm(imageTextPairs, desc = "Result Generation"):
+				probs = self.clipInterface.getProbsForSeparateAnswers(image, q, a)
+				predAnswer = answers[np.argmax(probs)]
+				results.append({"answer":predAnswer, "question_id":qid})
 		if(outFile):
 			json.dump(results, open(outFile, 'w'))
 		return results
@@ -78,7 +96,7 @@ class CLIPVQA:
 			results = {}
 			dataset = self.getImageTextPairDataset(evalDataSubType, answersDataSubType, numCandidates)
 		
-		dataloader = torch.utils.data.DataLoader(dataset, batch_size=4, collate_fn = self._collate_custom) 
+		dataloader = torch.utils.data.DataLoader(dataset, batch_size=1, collate_fn = self._collate_custom)
 		if(pklImageFeaturesFile):
 			preComputedFeatures = pkl.load(open(pklImageFeaturesFile, 'rb'))
 		else:
