@@ -64,7 +64,7 @@ class LossCurveCallback(pl.Callback):
                  label='lowest validation = '+str(self.a_val_loss.min())+' at '+str(self.a_val_loss.argmin()))
         a.legend()
         trainer.logger[0].experiment.add_figure('loss_curve', f)
-        trainer.logger[1].experiment.log({'loss_curve': f})
+        #trainer.logger[1].experiment.log({'loss_curve': f})
 
         f,a = plt.subplots(figsize=self.figsize)
         a.set_title('Loss curve')
@@ -76,4 +76,4 @@ class LossCurveCallback(pl.Callback):
                  label='lowest validation = '+str(self.a_val_loss.min())+' at '+str(self.a_val_loss.argmin()))
         a.legend()
         trainer.logger[0].experiment.add_figure('loss_curve_log', f)
-        trainer.logger[1].experiment.log({'loss_curve_log': f})
+        #trainer.logger[1].experiment.log({'loss_curve_log': f})

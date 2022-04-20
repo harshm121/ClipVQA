@@ -14,6 +14,7 @@ from loggers.log import Log_and_print
 from models.qAModel import VQAModelClassifier
 from utils import collect_env_details
 
+lstr_args = ['--max_epochs','10']
 
 def cli_main(parser):
 
@@ -37,7 +38,7 @@ def cli_main(parser):
     parser = pl.Trainer.add_argparse_args(parser)
     # model level args
     parser = VQAModelClassifier.add_model_specific_args(parser)
-    args = parser.parse_args()
+    args = parser.parse_args(lstr_args)
     # always print full weights_summary
     args.weights_summary = 'full'
     # automatically use all available GPUs
@@ -100,8 +101,8 @@ def cli_main(parser):
 
     # early stopping
     # https://pytorch-lightning.readthedocs.io/en/latest/common/early_stopping.html
-    cbEarlyStopping = pl.callbacks.early_stopping.EarlyStopping(monitor='val_loss', patience=args.es_patience)
-    l_callbacks.append(cbEarlyStopping)
+    #cbEarlyStopping = pl.callbacks.early_stopping.EarlyStopping(monitor='val_loss', patience=args.es_patience)
+    #l_callbacks.append(cbEarlyStopping)
 
     # model checkpoint
     # https://pytorch-lightning.readthedocs.io/en/latest/common/weights_loading.html#automatic-saving
@@ -122,6 +123,8 @@ def cli_main(parser):
                                             logger=[tb_logger, wandb_logger],
                                             callbacks=l_callbacks,
                                             )
+    trainer.val_percent_check = 0
+    trainer.check_val_every_n_epoch = 3
 
     # LEARNING RATE FINDER
     # https://pytorch-lightning.readthedocs.io/en/latest/advanced/lr_finder.html#learning-rate-finder
@@ -181,7 +184,7 @@ def cli_main(parser):
 
     # Tear down
     lnp.lnp('MAIN END (only logging is left)')
-    with open(args.save_dir + args.save_dir[:-1] + '_' + args.run_name +'.json', "w") as outfile:
+    with open(args.save_dir + '/results' + '_' + args.run_name +'.json', "w") as outfile:
         json.dump(dlog, outfile)
     lnp.dump_to_tensorboard()
     lnp.dump_to_wandb()
@@ -191,17 +194,17 @@ def cli_main(parser):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Full Pipeline Training')
-    parser.add_argument('--train_batch_size', type=int, default=4,
+    parser.add_argument('--train_batch_size', type=int, default=8,
                         help='Shorter side transformation.')
-    parser.add_argument('--eval_batch_size', type=int, default=4,
+    parser.add_argument('--eval_batch_size', type=int, default=8,
                         help='Shorter side transformation.')
     parser.add_argument('--num_workers', type=int, default=1,
                         help='Shorter side transformation.')
-    parser.add_argument('--n_val', type=int, default=-1,
+    parser.add_argument('--n_val', type=int, default=5000,
                         help='Shorter side transformation.')
     parser.add_argument('--n_train', type=int, default=10000,
                         help='Shorter side transformation.')
-    parser.add_argument('--n_test', type=int, default=-1,
+    parser.add_argument('--n_test', type=int, default=5000,
                         help='Shorter side transformation.')
     parser.add_argument('--train_data_dir', type=str, default="./data",
                         help='Shorter side transformation.')
@@ -221,11 +224,15 @@ if __name__ == '__main__':
                         help='Shorter side transformation.')
     parser.add_argument('--test_questionDataSubType', type=str, default="val2014",
                         help='Shorter side transformation.')
-    parser.add_argument('--numCandidates', type=int, default=1000,
+    parser.add_argument('--numCandidates', type=int, default=100,
                         help='Shorter side transformation.')
     parser.add_argument('--trainPklFilePath', type=str, default='./output/intermediate/trainNormalisedFeatures.pkl',
                         help='Shorter side transformation.')
-    parser.add_argument('--valPklFilePath', type=str, default='./output/intermediate/valNormalisedFeatures.pkl',
+    parser.add_argument('--valPklFilePath', type=str, default='./output/intermediate/normalisedFeatures.pkl',
+                        help='Shorter side transformation.')
+    parser.add_argument('--resultsTrain', type=str, default='resultsTrain',
+                        help='Shorter side transformation.')
+    parser.add_argument('--resultsVal', type=str, default='resultsVal',
                         help='Shorter side transformation.')
     trainer = cli_main(parser)
 

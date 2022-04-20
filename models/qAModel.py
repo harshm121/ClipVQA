@@ -52,9 +52,16 @@ class VQAModelClassifier(pl.LightningModule):
         self.train_image_features = self.getNormalisedImageFeatures(
             imageFilePath=self.train_images, batch_size=128, pklFilePath=self.hparams.trainPklFilePath)
         self.val_image_features = self.getNormalisedImageFeatures(
-            imageFilePath=self.val_images, batch_size=128, pklFilePath=self.hparams.trainPklFilePath)
-        self.resultsPath = "./output/results/append_numCandidates_{}_resultsVal.json".format(self.hparams.numCandidates)
-        self.results = json.load(open(self.resultsPath))
+            imageFilePath=self.val_images, batch_size=128, pklFilePath=self.hparams.valPklFilePath)
+        results_path = {
+            "train": self.hparams.resultsTrain,
+            "val": self.hparams.resultsVal,
+            "test": self.hparams.resultsVal,
+        }
+        self.resultsPathTrain = "./output/results/append_numCandidates_{}_{}.json".format(self.hparams.numCandidates, results_path["train"])
+        self.resultsPathVal = "./output/results/append_numCandidates_{}_{}.json".format(self.hparams.numCandidates, results_path["val"])
+        #self.resultsTrain = json.load(open(self.resultsPathTrain))
+        self.resultsVal = {}
 
 
     def getNormalisedImageFeatures(self, imageFilePath, batch_size, pklFilePath):
@@ -84,7 +91,7 @@ class VQAModelClassifier(pl.LightningModule):
             for idx, f in enumerate(tempBatch):
                 allFeatures[f] = image_features[idx]
             done += len(tempBatch)
-        #pkl.dump(allFeatures, open(pklFilePath, 'wb'), protocol = 3)
+        pkl.dump(allFeatures, open(pklFilePath, 'wb'), protocol = 3)
         return allFeatures
 
     def getTextFeatures(self, questions, answers,
@@ -212,12 +219,12 @@ class VQAModelClassifier(pl.LightningModule):
             answer = answers[b]
             predAnswer = answer[torch.argmax(prob)]
             qid = qids[b]
-            self.results[qid] = {"answer":predAnswer, "question_id":qid}
+            self.resultsVal[qid] = {"answer":predAnswer, "question_id":qid}
         return loss
 
     def on_validation_end(self):
-        os.makedirs(os.path.dirname(self.resultsPath), exist_ok=True)
-        json.dump(self.results, open(self.resultsPath, 'w'))
+        os.makedirs(os.path.dirname(self.resultsPathVal), exist_ok=True)
+        json.dump(self.resultsVal, open(self.resultsPathVal, 'w'))
 
 
     def test_step(self, batch, batch_idx):
@@ -259,13 +266,14 @@ class VQAModelClassifier(pl.LightningModule):
             dataset = self.get_dataset(self.hparams.train_data_dir,
                                        self.hparams.train_questionDataSubType,
                                        self.hparams.train_answersDataSubType,
-                                       n_obs)
+                                       n_obs,
+                                       outFile=self.resultsPathTrain)
         if type_path=="val":
             dataset = self.get_dataset(self.hparams.val_data_dir,
                                        self.hparams.val_questionDataSubType,
                                        self.hparams.val_answersDataSubType,
                                        n_obs,
-                                       outFile=self.resultsPath)
+                                       outFile=self.resultsPathVal)
         if type_path=="test":
             dataset = self.get_dataset(self.hparams.test_data_dir,
                                        self.hparams.test_questionDataSubType,
@@ -286,7 +294,8 @@ class VQAModelClassifier(pl.LightningModule):
         return dataloader
 
     def val_dataloader(self) -> DataLoader:
-        return self.get_dataloader("val", batch_size=self.hparams.eval_batch_size)
+        dataloader =  self.get_dataloader("val", batch_size=self.hparams.eval_batch_size)
+        return dataloader
 
     def test_dataloader(self) -> DataLoader:
         return self.get_dataloader("test", batch_size=self.hparams.eval_batch_size)

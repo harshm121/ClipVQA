@@ -84,14 +84,13 @@ class VQADataset(Dataset):
                              '>', '<', '@', '`', ',', '?', '!']
 
         self.allAnswers, self.qiPairs = self.getImageTextPairDataset()
-
         if(append and outFile is not None and os.path.exists(outFile)):
             results = json.load(open(outFile))
             qidsProcessed = results.keys()
         else:
             qidsProcessed = []
         self.qidsProcessed = [int(q) for q in qidsProcessed]
-        self.qid = list(set(self.qiPairs.keys()) - set(self.qidsProcessed))
+        self.qid = list(set(self.qiPairs.keys()))
         print("Out of {}/{} (Questions, Image) pairs already processed.".format( len(self.qidsProcessed), len(self.qiPairs.keys())))
 
     def getImageTextPairDataset(self):
