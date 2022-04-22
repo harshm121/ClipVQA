@@ -189,6 +189,18 @@ class VQADataset(Dataset):
         else:
             raise Exception("Class function \'getCandidateAnswers\' returns type {}, expected type is {} or {}".format(type(candidateAnswers), list, dict))
 
+    def shuffle_lists(self, list1, list2, list3):
+        indices = list(range(len(list1)))
+        random.shuffle(indices)
+        shuffled_list1 = []
+        shuffled_list2 = []
+        shuffled_list3 = []
+        for i in indices:
+            shuffled_list1.append(list1[i])
+            shuffled_list2.append(list2[i])
+            shuffled_list3.append(list3[i])
+        return shuffled_list1, shuffled_list2, shuffled_list3
+
     def labelCrossCandidateAnswers(self, question, correctAnswer, candidateAnswers):
         labels = []
         questions = []
@@ -199,7 +211,7 @@ class VQADataset(Dataset):
                 labels.append(1)
             else:
                 labels.append(0)
-        return questions, candidateAnswers, labels
+        return self.shuffle_lists(questions, candidateAnswers, labels)
 
     def getCandidateAnswers(self, allAnswers, numCandidates):
         if self.candidateAnswerGenerator == "most_common":
@@ -225,6 +237,7 @@ class VQADataset(Dataset):
         questions, answers, labels = self.getLabelsFromAllPossibleAnswers(question, correctAnswer, self.allAnswers, self.numCandidates)
         image = self.qiPairs[qid]['image_path']
         labels = torch.as_tensor(labels)
+
         return {"qid": qid, "image":image, "question":questions, "answers":answers, "labels":labels}
 
     def collate_fn(self, batch):

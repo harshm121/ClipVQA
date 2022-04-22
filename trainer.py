@@ -14,7 +14,7 @@ from loggers.log import Log_and_print
 from models.qAModel import VQAModelClassifier
 from utils import collect_env_details
 
-lstr_args = ['--max_epochs','10']
+lstr_args = ['--max_epochs','3']
 
 def cli_main(parser):
 
@@ -224,7 +224,7 @@ if __name__ == '__main__':
                         help='Shorter side transformation.')
     parser.add_argument('--test_questionDataSubType', type=str, default="val2014",
                         help='Shorter side transformation.')
-    parser.add_argument('--numCandidates', type=int, default=100,
+    parser.add_argument('--numCandidates', type=int, default=5,
                         help='Shorter side transformation.')
     parser.add_argument('--trainPklFilePath', type=str, default='./output/intermediate/trainNormalisedFeatures.pkl',
                         help='Shorter side transformation.')

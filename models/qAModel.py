@@ -30,6 +30,7 @@ class VQAModelClassifier(pl.LightningModule):
         self.save_hyperparameters()
         # model
         self.l1 = torch.nn.Linear(1024, self.hparams.hidden_dim)
+        self.relu = torch.nn.ReLU()
         self.l2 = torch.nn.Linear(self.hparams.hidden_dim, 512)
 
         n_observations_per_split = {
@@ -151,7 +152,7 @@ class VQAModelClassifier(pl.LightningModule):
         # Getting final probabilities
         logit_scale = self.clip.logit_scale.exp()
         # probs = batch_size x 1 x texts_per_image
-        probs = (logit_scale * torch.matmul(image_features, text_features)).softmax(dim=-1)
+        probs = (logit_scale * torch.matmul(image_features, text_features)).sigmoid()
 
         return probs
 
@@ -159,6 +160,7 @@ class VQAModelClassifier(pl.LightningModule):
         text_features = text_features.float()
         image_features = image_features.float()
         text_features = self.l1(text_features)
+        text_features = self.relu(text_features)
         text_features = self.l2(text_features)
         text_features = text_features.permute(0,2,1)
         probs = self.getProbs(image_features, text_features)
@@ -188,11 +190,12 @@ class VQAModelClassifier(pl.LightningModule):
         question_features, answer_features = self.getTextFeatures(question, answers, len(qids))
         image_features = self.getImageFeatures(images, self.train_image_features)
         text_features = torch.cat((question_features, answer_features), 2).to("cuda")
-
         probs = self.forward(text_features, image_features)
-        probs = probs.reshape(probs.shape[0], probs.shape[2])
 
-        loss = F.cross_entropy(labels, probs)
+        probs = probs.reshape(probs.shape[0], probs.shape[2])
+        probs = probs.flatten()
+        labels = labels.flatten()
+        loss = F.binary_cross_entropy(probs, labels)
         self.log('trn_loss', loss.item()) # Automatic aggregation in the background
         return loss
 
@@ -209,8 +212,10 @@ class VQAModelClassifier(pl.LightningModule):
 
         probs = self.forward(text_features, image_features)
         probs = probs.reshape(probs.shape[0], probs.shape[2])
+        probs = probs.flatten()
+        labels = labels.flatten()
 
-        loss = F.cross_entropy(labels, probs)
+        loss = F.binary_cross_entropy(probs, labels)
         self.log('val_loss', loss.item()) # Automatic aggregation in the background
         self.log('hp_metric', loss.item()) # Automatic aggregation in the background
 
@@ -223,6 +228,7 @@ class VQAModelClassifier(pl.LightningModule):
         return loss
 
     def on_validation_end(self):
+        print("===IAMWHATIAM==")
         os.makedirs(os.path.dirname(self.resultsPathVal), exist_ok=True)
         json.dump(self.resultsVal, open(self.resultsPathVal, 'w'))
 
@@ -273,7 +279,7 @@ class VQAModelClassifier(pl.LightningModule):
                                        self.hparams.val_questionDataSubType,
                                        self.hparams.val_answersDataSubType,
                                        n_obs,
-                                       outFile=self.resultsPathVal)
+                                       outFile=self.resultsPathTrain)
         if type_path=="test":
             dataset = self.get_dataset(self.hparams.test_data_dir,
                                        self.hparams.test_questionDataSubType,
