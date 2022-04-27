@@ -108,7 +108,6 @@ class VQAInterface:
 		for ann in tqdm(annFile['annotations'], desc = "Generating All Answers"):
 			answer = self.__preProcessAnswer(ann['multiple_choice_answer'])
 			answerCounts[answer] = answerCounts.get(answer, 0) + 1
-
 		return answerCounts
 
 	def getQIPairs(self, dataSubType):

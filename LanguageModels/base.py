@@ -9,47 +9,63 @@ class LanguageModelBase(ABC):
         pass
 
     """
-    	question: the question as a string
-    	allAnswers: list of all possible answers - prior probability is then considered as uniform across all asnwers
-    				OR
-    			  : dictionary with key as a possible answer and it's value as the prior probability
-		k: number of candidates to return
+        question: the question as a string
+        allAnswers: list of all possible answers - prior probability is then considered as uniform across all asnwers
+                    OR
+                  : dictionary with key as a possible answer and it's value as the prior probability
+        k: number of candidates to return
 
-    	returns: a list of possible answers or a dictionary with posterior probabilities.
+        returns: a list of possible answers or a dictionary with posterior probabilities.
     """
     @property
     @abc.abstractmethod
     def getCandidateAnswers(self, question, allAnswers, numCandidates):
-    	pass
+        pass
 
 
     """
-    	question: the question as a string
-    	candidateAnswers: candidateAnswers to be crossed with for the question
-		
-		returns: a list of text and the corresponding answers
+        question: the question as a string
+        candidateAnswers: candidateAnswers to be crossed with for the question
+        
+        returns: a list of text and the corresponding answers
     """
     def questionCrossCandidateAnswers(self, question, candidateAnswers):
-    	qXa = []
-    	for candidateAnswer in candidateAnswers:
-    		qXa.append(self.getText(question, candidateAnswer))
-    	return qXa, candidateAnswers
+        qXa = []
+        for candidateAnswer in candidateAnswers:
+            qXa.append(self.getText(question, candidateAnswer))
+        return qXa, candidateAnswers
+
+    def questionCrossCandidateAnswersWithSeparateAnswers(self, question, candidateAnswers):
+        qX = []
+        aX = []
+        for candidateAnswer in candidateAnswers:
+            qX.append(question)
+            aX.append(candidateAnswer)
+        return qX, aX, candidateAnswers
 
     """
-    	question: the question as a string
-    	allAnswers: list of all possible answers - prior probability is then considered as uniform across all asnwers
-    				OR
-    			  : dictionary with key as a possible answer and it's value as the prior probability
-		k: number of candidates to return
+        question: the question as a string
+        allAnswers: list of all possible answers - prior probability is then considered as uniform across all asnwers
+                    OR
+                  : dictionary with key as a possible answer and it's value as the prior probability
+        k: number of candidates to return
 
-    	returns: a list of text and the corresponding answers
+        returns: a list of text and the corresponding answers
     """
     def getTextFromAllPossibleAnswers(self, question, allAnswers, numCandidates):
-    	candidateAnswers = self.getCandidateAnswers(question, allAnswers, numCandidates)
-    	if(type(candidateAnswers) == dict):
-    		return self.questionCrossCandidateAnswers(question, list(candidateAnswers.keys()))
-    	elif(type(candidateAnswers) == list):
-    		return self.questionCrossCandidateAnswers(question, candidateAnswers)
-    	else:
-    		raise Exception("Class function \'getCandidateAnswers\' returns type {}, expected type is {} or {}".format(type(candidateAnswers), list, dict))
+        candidateAnswers = self.getCandidateAnswers(question, allAnswers, numCandidates)
+        if(type(candidateAnswers) == dict):
+            return self.questionCrossCandidateAnswers(question, list(candidateAnswers.keys()))
+        elif(type(candidateAnswers) == list):
+            return self.questionCrossCandidateAnswers(question, candidateAnswers)
+        else:
+            raise Exception("Class function \'getCandidateAnswers\' returns type {}, expected type is {} or {}".format(type(candidateAnswers), list, dict))
 
+    def getTextFromAllPossibleAnswersWithSeparateAnswers(self, question, allAnswers, numCandidates):
+        candidateAnswers = self.getCandidateAnswers(question, allAnswers, numCandidates)
+        if(type(candidateAnswers) == dict):
+            return self.questionCrossCandidateAnswersWithSeparateAnswers(question, list(candidateAnswers.keys()))
+        elif(type(candidateAnswers) == list):
+            return self.questionCrossCandidateAnswersWithSeparateAnswers(question, candidateAnswers)
+        else:
+            raise Exception("Class function \'getCandidateAnswers\' returns type {}, expected type is {} or {}".format(type(candidateAnswers), list, dict))
